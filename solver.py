@@ -1,10 +1,19 @@
 import numpy as np
+import copy
 
 
 class Solver:
-    def __init__(self, grid):
+    def __init__(self, grid=[]):
         self.grid = grid
         self.currentIndex = [0, 0]
+        self.attempt = 0
+        self.execTime = 0
+
+        self.solvedGrid = []
+
+    def setGrid(self, grid):
+        self.grid = grid
+        pass
 
     def isPossible(self, posx, posy, num):
         # Let us check if the number is in the column
@@ -48,8 +57,12 @@ class Solver:
                     return
 
         self.printGrid()
+        self.solvedGrid = copy.deepcopy(self.grid)
         pass
 
+    def getGrid(self):
+        return self.solvedGrid
+
     def printGrid(self):
-        print(np.matrix(self.grid), end='\r')
+        print(np.matrix(self.grid))
         pass
