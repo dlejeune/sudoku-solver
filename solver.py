@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+from time import perf_counter
 
 
 class Solver:
@@ -46,6 +47,8 @@ class Solver:
         pass
 
     def solve(self):
+        t1_start = perf_counter()
+
         for row in range(9):
             for col in range(9):
                 if self.grid[row][col] == 0:
@@ -55,7 +58,8 @@ class Solver:
                             self.solve()
                             self.grid[row][col] = 0
                     return
-
+        t1_stop = perf_counter()
+        self.execTime = t1_stop - t1_start
         self.printGrid()
         self.solvedGrid = copy.deepcopy(self.grid)
         pass

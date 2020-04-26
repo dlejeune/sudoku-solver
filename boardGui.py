@@ -1,6 +1,7 @@
 import sys
 from functools import partial
 import solver
+import numpy as np
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QLabel
@@ -11,8 +12,65 @@ from PyQt5.QtWidgets import QLineEdit
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QScrollArea
+
 from PyQt5.QtCore import Qt
 
+
+class HelpDialog(QDialog):
+
+    def __init__(self, parent=None):
+        super(HelpDialog, self).__init__(parent)
+        self.setWindowTitle("Help")
+        self.setGeometry(100, 100, 750, 750)
+        help_body = QLabel("", parent=self)
+        help_text = """
+                <h1>Okay so you need help</h1>
+        This is literally the simplest programme ever. The steps are as follows:<br/><br/>
+
+        <ol>
+        <li>Make sure the board is clear</li>
+        <li>Load a board (two ways of doing this)</li>
+        <li>Make the machine do all the hard work</li>
+        </ol>
+        <br/><br/>
+
+        <h2>Clearing the board</h2>
+        You can go and delete all the values one-by-one. Or you can click the <code>Clear</code> button and let the computer do it for you.
+        <br/><br/>
+
+        <h2>Loading a board</h2>
+        <h4>Manually</h4>
+        Input each number of the sudoku puzzle by hand. As you type a number, the cursor will automaticqlly move forward to the next slot. You can press <kbd>Shit + Tab</kbd> to go back a cell.
+
+        <h4>With a text file</h4>
+        You can also load a board from a text file, by pressing the <code>Load</code> button. The file is simply a text file that represents the sudoku board. It should contain 9 lines each with 9 numbers seperated by a whitespace. There should not be a whitespace at the end of the line, only a newline character.<br/>
+
+        Example:
+
+        <pre>
+        0 0 3 0 2 0 6 0 0
+        9 0 0 3 0 5 0 0 1
+        0 0 1 8 0 6 4 0 0
+        0 0 8 1 0 2 9 0 0
+        7 0 0 0 0 0 0 0 8
+        0 0 6 7 0 8 2 0 0
+        0 0 2 6 0 9 5 0 0
+        8 0 0 2 0 3 0 0 9
+        0 0 5 0 1 0 3 0 0
+        </pre>
+
+        <h4>Input Notes</h4>
+        Please make sure you only enter numeric values in the text file. I've been too lazy to code any input sanitization. <br/>
+
+        When inputting manually, if you leave a cell blank or input a letter, it'll just be read as a zero.
+
+        <h2>Make the machine do the work</h2>
+        Literally just press the solve button. Note the technique used is extremely rough, so it could take anywhere from a few milliseconds to whole minutes. Also, it could be that your computer is trash.
+        """
+        help_body.setText(help_text)
+        help_body.setWordWrap(True)
 
 class BoardGui(QMainWindow):
 
@@ -23,7 +81,7 @@ class BoardGui(QMainWindow):
         self.currentCursPos = [0, 0]
 
         self.setWindowTitle("Sudoku Solver")
-        self.setGeometry(650, 300, 650, 600)
+        self.setFixedSize(700, 650)
 
         self.generalLayout = QVBoxLayout()
         self._centralWidget = QWidget(self)
@@ -32,25 +90,37 @@ class BoardGui(QMainWindow):
 
         self._createHeaderBox()
         self._createInputs()
+        self.helpModal = HelpDialog()
         pass
 
     def _createHeaderBox(self):
         self.headerPanelLayout = QGridLayout()
         titleMessage = QLabel('<h1>Sudoku Solver</h1>')
-        infoMessasge = QLabel('<p>Hello, and welcome to this app which will actually be the death of me</p>')
-
-        timeMessage = QLabel("")
+        infoMessasge = QLabel('<p>Hello, and welcome to this app which will actually be the death of me. Load in a board (txt file - see the help button below) or type one in (it\'s more fun than you think). The click solve. DON\'T CLICK SOLVE ON AN EMPTY BOARD.</p>')
+        infoMessasge.setWordWrap(True)
+        self.timeMessage = QLabel("")
 
         self.solveButton = QPushButton("Solve")
         self.solveButton.setFixedSize(70, 30)
+
+        self.solveButton.setStyleSheet("QPushButton {background-color: #5cb85c; color: white }")
+
         self.loadButton = QPushButton("Load")
         self.loadButton.setFixedSize(70, 30)
 
-        self.headerPanelLayout.addWidget(titleMessage, 0, 0)
-        self.headerPanelLayout.addWidget(infoMessasge, 1, 0)
-        self.headerPanelLayout.addWidget(timeMessage, 0, 2)
-        self.headerPanelLayout.addWidget(self.solveButton, 1, 1)
-        self.headerPanelLayout.addWidget(self.loadButton, 1, 2)
+        self.clearButton = QPushButton("Clear")
+        self.clearButton.setFixedSize(70, 30)
+
+        self.helpButton = QPushButton("Help")
+        self.helpButton.setFixedSize(70, 30)
+
+        self.headerPanelLayout.addWidget(titleMessage, 0, 0, 1, 2)
+        self.headerPanelLayout.addWidget(infoMessasge, 1, 0, 2, 4)
+        self.headerPanelLayout.addWidget(self.timeMessage, 0, 1, 1, 2)
+        self.headerPanelLayout.addWidget(self.solveButton, 2, 3, 1, 1)
+        self.headerPanelLayout.addWidget(self.loadButton, 2, 1, 1, 1)
+        self.headerPanelLayout.addWidget(self.clearButton, 2, 0, 1, 1)
+        self.headerPanelLayout.addWidget(self.helpButton, 2, 2, 1, 1)
 
         self.generalLayout.addLayout(self.headerPanelLayout)
 
@@ -86,7 +156,8 @@ class BoardGui(QMainWindow):
 
         self.generalLayout.addLayout(self.inputLayout)
 
-        pass
+
+
 
 
 class BoardController():
@@ -122,7 +193,10 @@ class BoardController():
         self.solver.solve()
         print(self.solver.getGrid())
         print(self.solver.solvedGrid)
+
         self.populateUi(self.solver.getGrid())
+        execTime = 'Solved in {:f} seconds'.format(self.solver.execTime)
+        self._view.timeMessage.setText(execTime)
 
     def populateUi(self, grid):
         for row in range(9):
@@ -151,16 +225,50 @@ class BoardController():
         pass
 
     def moveCursor(self, x, y):
+        newx = x + 1
+        newy = y
 
+        if newx > 8:
+            newx = 0
+            newy += 1
+            pass
+
+        if newy > 8:
+            newy = 0
+            pass
+
+        self._view.inputs[newy][newx].setFocus()
+        pass
+
+    def clear(self):
+        for row in range(9):
+            for col in range(9):
+                self._view.inputs[row][col].clear()
+                pass
+            pass
+
+    def showHelp(self):
+
+
+        self._view.helpModal.show()
         pass
 
     def _connectSignals(self):
         self._view.solveButton.clicked.connect(partial(self.solve))
         self._view.loadButton.clicked.connect(partial(self.loadFromFile))
 
+        self._view.clearButton.clicked.connect(partial(self.clear))
+        self._view.helpButton.clicked.connect(partial(self.showHelp))
+
         for row in range(9):
             for col in range(9):
                 self._view.inputs[row][col].textChanged.connect(partial(self.moveCursor, col, row))
+
+
+
+
+
+
 
 
 def main():
