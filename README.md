@@ -1,11 +1,9 @@
 # Sudoku Solver
  Real straightforward sudoku solver, using a basic baxcktracking algorithm.
 
- ## CMD Usage
- Run the following command
- ```
- python3 main.py path/to/board.txt
- ```
+ ## Usage
+TODO
+
 ### Board.txt
 The `board.txt` file is simply a text file that represents the sudoku board. It should contain 9 lines each with 9 numbers seperated by a whitespace. There should not be a whitespace at the end of the line, only a newline character.
 
