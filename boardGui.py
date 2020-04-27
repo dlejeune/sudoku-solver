@@ -1,7 +1,9 @@
 import sys
 from functools import partial
 import solver
-import numpy as np
+
+from time import perf_counter
+
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QLabel
@@ -13,7 +15,7 @@ from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QDialog
-from PyQt5.QtWidgets import QScrollArea
+
 
 from PyQt5.QtCore import Qt
 
@@ -71,6 +73,7 @@ class HelpDialog(QDialog):
         """
         help_body.setText(help_text)
         help_body.setWordWrap(True)
+
 
 class BoardGui(QMainWindow):
 
@@ -157,9 +160,6 @@ class BoardGui(QMainWindow):
         self.generalLayout.addLayout(self.inputLayout)
 
 
-
-
-
 class BoardController():
 
     def __init__(self, view, solver):
@@ -190,12 +190,16 @@ class BoardController():
     def solve(self):
         cleanedGrid = self.cleanData()
         self.solver.setGrid(cleanedGrid)
+        t1_start = perf_counter()
+
         self.solver.solve()
+        t1_stop = perf_counter()
+        execTime = t1_stop - t1_start
         print(self.solver.getGrid())
-        print(self.solver.solvedGrid)
+        print(self.solver.counter)
 
         self.populateUi(self.solver.getGrid())
-        execTime = 'Solved in {:f} seconds'.format(self.solver.execTime)
+        execTime = 'Solved in {:f} seconds'.format(execTime)
         self._view.timeMessage.setText(execTime)
 
     def populateUi(self, grid):
@@ -249,7 +253,6 @@ class BoardController():
 
     def showHelp(self):
 
-
         self._view.helpModal.show()
         pass
 
@@ -263,12 +266,6 @@ class BoardController():
         for row in range(9):
             for col in range(9):
                 self._view.inputs[row][col].textChanged.connect(partial(self.moveCursor, col, row))
-
-
-
-
-
-
 
 
 def main():
